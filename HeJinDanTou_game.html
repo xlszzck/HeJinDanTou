@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <style>
+        body{
+            padding: 0;
+            margin: 0;
+            height: 643px;
+            background-size: auto 643px;
+            background: url(images/background.png) center no-repeat;
+            position: relative;
+            overflow: hidden;
+        }
+        #enemyImg,#playerImg,#bulletImg,#backgroundImg{
+            display: none;
+        }
+        canvas{
+            margin-top: 100px;
+            border: 2px solid white;
+        }
+        .door{
+            width: 683px;
+            height: 643px;
+            position: absolute;
+            top: 0;
+            background-size: auto 643px;
+            background: url(images/background.png) no-repeat;
+            z-index: 99;
+        }
+        #door1{
+            left: 0;
+            background-position: -277px center;
+            transition: all 1s ease-in-out;
+        }
+        #door2{
+            left: 683px;
+            background-position: -960px center;
+            transition: all 1s ease-in-out;
+        }
+        #score{
+            width: 150px;
+            height: 40px;
+            position: absolute;
+            z-index: 20;
+            top: 120px;
+            right: 20px;
+            box-sizing: border-box;
+            border: 2px solid white;
+            border-radius: 10px;
+            font-size: 20px;
+            color: white;
+            font-weight: bolder;
+            line-height: 36px;
+            text-align: center;
+            font-family: Arial,sans-serif;
+        }
+        #result{
+            width: 400px;
+            height: 400px;
+            background-color: white;
+            position: absolute;
+            top: 120px;
+            left: 483px;
+            z-index: 80;
+            display: none;
+            border-radius: 10px;
+        }
+        .resultScore{
+            font-family: 微软雅黑, sans-serif;
+            font-size: 30px;
+            font-weight: bolder;
+            margin-top: 30px;
+            padding-left: 50px;
+        }
+        #resultTitle{
+            text-align: center;
+            padding: 0;
+        }
+        #youhuiquanImg{
+            display: block;
+            margin: 30px auto;
+        }
+        .start{
+            width: 100px;
+            height: 60px;
+            position: absolute;
+            top: 50px;
+            box-sizing: border-box;
+            font-size: 30px;
+            font-weight: bolder;
+            line-height: 56px;
+            color: white;
+
+            transition: top .5s ease-in-out;
+        }
+        #start1{
+            right: 0;
+            text-align: right;
+            border-radius: 10px 0 0 10px;
+            border: 2px solid white;
+            border-right: none;
+        }
+        #start2{
+            left: 0;
+            text-align: left;
+            border-radius: 0 10px 10px 0;
+            border: 2px solid white;
+            border-left: none;
+        }
+    </style>
+</head>
+<body>
+<canvas id="myCanvas" width="1362" height="448"></canvas>
+<div id="door1" class="door" onclick="moveDoor()">
+    <div id="start1" class="start">点击</div>
+</div>
+<div id="door2" class="door" onclick="moveDoor()">
+    <div id="start2" class="start">开始</div>
+</div>
+<div id="score"></div>
+<div id="result">
+    <div id="resultTitle" class="resultScore">游戏结束</div>
+    <div id="resultScore" class="resultScore">你获得了：</div>
+    <div class="resultScore">你赢得了：</div>
+    <img id="youhuiquanImg" src="images/10youhuiquan.png" alt=""/>
+</div>
+<img id="enemyImg" src="images/miniufo.gif" alt=""/>
+<!--<img id="playerImg" src="images/metalslug2sheet1.png" alt=""/>-->
+<img id="playerImg" src="images/tank.png" alt=""/>
+<img id="bulletImg" src="images/bullet.png" alt=""/>
+<img id="backgroundImg" src="images/mission41.png" alt=""/>
+<script>
+    var ctx=document.getElementById("myCanvas").getContext("2d");
+    var enemyList=[];
+    var playList=[];
+    var bulletList=[];
+    var playerImg=document.getElementById("playerImg");
+    var bulletImg=document.getElementById("bulletImg");
+    var backgroundImg=document.getElementById("backgroundImg");
+    var playerPositionX=600;
+    var playerPositionY=300;
+    var backgroundCutX=538;
+    var backgroundPositionX=-683;
+    var leftButton=false;
+    var rightButton=false;
+    var upButton=false;
+    var downButton=false;
+    var spaceButton=false;
+    var myPlayer;
+    var myBackground;
+    var playerTurnRight=true;
+    var m=0;
+    var bulletPositionX;
+    var bulletPositionY;
+    var killCount=0;
+    var createEnemySetInterval;
+    var moveCheckSetInterval;
+    var controlPlayerMoveSetInterval;
+    var crashCheckSetInterval;
+    var gameStart=true;
+    function gameOver(){
+        clearInterval(createEnemySetInterval);
+        clearInterval(moveCheckSetInterval);
+        clearInterval(controlPlayerMoveSetInterval);
+        clearInterval(crashCheckSetInterval);
+        if(killCount*100<=200){
+            document.getElementById("youhuiquanImg").src="images/10youhuiquan.png";
+        }
+        else if(200<killCount*100&&killCount*100<=500){
+            document.getElementById("youhuiquanImg").src="images/20youhuiquan.png";
+        }
+        else if(500<killCount*100){
+            document.getElementById("youhuiquanImg").src="images/50youhuiquan.png";
+        }
+        document.getElementById("result").style.display="block";
+        document.getElementById("resultScore").innerHTML="你的得分为："+killCount*100;
+    }
+    function moveDoor(){
+        if(gameStart==true){
+            document.getElementById("door1").style.left="-683px";
+            document.getElementById("door2").style.left="1366px";
+            createEnemySetInterval=setInterval(createEnemy,1000);
+            moveCheckSetInterval=setInterval(moveCheck,50);
+            controlPlayerMoveSetInterval=setInterval(controlPlayerMove,60);
+            crashCheckSetInterval=setInterval(crashCheck,10);
+            myPlayer= new playerStyle(playerImg,0,4,64,58,playerPositionX,playerPositionY,128,116);
+            playList.push(myPlayer);
+        }
+        gameStart=false;
+    }
+    function createEnemy(){
+        var enemyImg=document.getElementById("enemyImg");
+        var newEnemy=new enemyStyle(enemyImg,25,0,50,45,-100,Math.random()*300,100,90);
+        enemyList.push(newEnemy);
+    }
+    /*———————————————————玩家样式———————————————————*/
+    function playerStyle(imgNode,cutX,cutY,cutW,cutH,positionX,positionY,drawW,drawH){
+        //console.log(cutX,cutY);
+        this.ctx=ctx;
+        this.imgNode=imgNode;
+        this.cutX=cutX;
+        this.cutY=cutY;
+        this.cutW=cutW;
+        this.cutH=cutH;
+        this.positionX=positionX;
+        this.positionY=positionY;
+        this.drawW=drawW;
+        this.drawH=drawH;
+        this.speed=10;
+        this.alive=true;
+        this.stand=function(){
+            this.cutY=cutY;
+            if(this.cutX==0&&this.cutX!=64){
+                this.cutX=64;
+            }
+            else if(this.cutX==64){
+                this.cutX=0;
+            }
+        };
+        this.moveLeft=function(){
+            playerTurnRight=false;
+            if(this.positionX>=0){
+                this.positionX=this.positionX-this.speed;
+            }
+            this.cutY=cutY+60;
+            this.cutX=this.cutX-64;
+            if(this.cutX<=0){
+                this.cutX=448;
+            }
+        };
+        this.moveRight=function(){
+            playerTurnRight=true;
+            if(this.positionX<=1250){
+                this.positionX=this.positionX+this.speed;
+            }
+            this.cutY=cutY+60;
+            this.cutX=this.cutX+64;
+            if(this.cutX>=446.5){
+                this.cutX=64;
+            }
+        };
+        this.drawPlayer=function(){
+            this.ctx.beginPath();
+            this.ctx.drawImage(this.imgNode,this.cutX,this.cutY,this.cutW,this.cutH,this.positionX,this.positionY,this.drawW,this.drawH);
+            playerGunStyle(this.imgNode,this.positionX-4,this.positionY+40);
+        }
+    }
+    /*———————————————————玩家武器———————————————————*/
+    function playerGunStyle(imgNode,positionX,positionY){
+        this.ctx=ctx;
+        this.imgNode=imgNode;
+        this.positionX=positionX;
+        this.positionY=positionY;
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.translate(this.positionX+30,this.positionY+30);
+        if(leftButton==true&&m>-9){
+            m--;
+        }
+        else if(rightButton==true&&m<27){
+            m++;
+        }
+        else if(upButton==true){
+            if(9<m&&m!=9){
+                m--;
+            }
+            else if(-9<=m&&m<9){
+                m++;
+            }
+        }
+        else if(downButton==true){
+            if(9<m&&m<27&&m!=9){
+                m++;
+            }
+            else if(-9<m&&m<9){
+                m--;
+            }
+        }
+        this.ctx.rotate(m*5*Math.PI/180);
+        this.ctx.drawImage(this.imgNode,10,653,22,23,-30,-30,44,46);
+        this.ctx.restore();
+        bulletPositionX=this.positionX+30;
+        bulletPositionY=this.positionY+30;
+    }
+    /*————————————————————子弹————————————————————*/
+    function playerBulletStyle(imgNode,positionX,positionY){
+        //console.log("创建子弹");
+        this.ctx=ctx;
+        this.imgNode=imgNode;
+        this.translateX=positionX;
+        this.translateY=positionY;
+        this.positionX=-30;
+        this.positionY=-13*Math.random();
+        this.deg=(m-27.5)*5+5*Math.random();
+        this.speed=70;
+        this.move=function(){
+            this.positionX=this.positionX+this.speed
+        };
+        this.drawBullet= function(){
+            this.ctx.save();
+            this.ctx.beginPath();
+            this.ctx.translate(this.translateX,this.translateY);
+            this.ctx.rotate(this.deg*Math.PI/180);
+            //console.log(this.deg);
+            this.ctx.drawImage(this.imgNode,0,0,58,13,this.positionX,this.positionY,58,13);
+            this.ctx.restore();
+        };
+    }
+    /*————————————————————敌人————————————————————*/
+    function enemyStyle(imgNode,cutX,cutY,cutW,cutH,positionX,positionY,drawW,drawH){
+        this.ctx=ctx;
+        this.alive=true;
+        this.deadStatus=false;
+        this.imgNode=imgNode;
+        if(this.alive==true){
+            this.cutX=cutX;
+            this.cutY=cutY;
+            this.cutW=cutW;
+            this.cutH=cutH;
+        }
+        if(this.alive==false){
+            this.cutX=0;
+            this.cutY=138;
+            this.cutW=55;
+            this.cutH=60;
+        }
+        this.positionX=positionX;
+        this.positionY=positionY;
+        this.drawW=drawW;
+        this.drawH=drawH;
+        this.speed=Math.random()*10+10;
+        //this.ctx.clearRect(this.positionX,this.positionY,this.drawW,this.drawH);
+        //console.log(this.cutX,this.cutY);
+        this.move=function(){
+            this.positionX=this.positionX+this.speed;
+        };
+        this.drawEnemy=function(){
+            if(this.alive==true){
+                this.ctx.beginPath();
+                this.ctx.drawImage(this.imgNode,this.cutX,this.cutY,this.cutW,this.cutH,this.positionX,this.positionY,this.drawW,this.drawH);
+                if(this.cutX>=225&&this.cutY==0){
+                    this.cutX=25;
+                    this.cutY=45;
+                }
+                else if(this.cutX>=225&&this.cutY==45){
+                    this.cutX=117;
+                    this.cutY=90;
+                }
+                else if(this.cutX>=225&&this.cutY==90){
+                    this.cutX=25;
+                    this.cutY=0;
+                }
+                else if(this.cutY!=90){
+                    this.cutX=this.cutX+50;
+                }
+                else if(this.cutY==90){
+                    this.cutX=this.cutX+53;
+                }
+                this.clear=function(){
+                    this.ctx.clearRect(this.positionX,this.positionY,this.drawW,this.drawH);
+                }
+            }
+            else if(this.alive==false){
+                ctx.beginPath();
+                ctx.drawImage(this.imgNode,this.cutX,this.cutY,this.cutW,60,this.positionX,this.positionY,this.cutW*2,120);
+                if(this.cutY==138&&this.cutX==0){
+                    this.cutX=this.cutX+50;
+                    this.positionX=this.positionX-25;
+                    this.positionY=this.positionY-15;
+                }
+                else if(this.cutY==138&&this.cutX==50){
+                    this.cutX=this.cutX+55;
+                    this.cutW=60;
+                }
+                else if(this.cutY==138&&this.cutX==105){
+                    this.cutX=this.cutX+65;
+                    this.cutW=75;
+                }
+                else if(this.cutY==138&&this.cutX==170){
+                    this.cutX=this.cutX+70;
+                }
+                else if(this.cutY==138&&this.cutX==240){
+                    this.cutX=30;
+                    this.cutY=200;
+                }
+                else if(this.cutY==200&&this.cutX==30){
+                    this.cutX=this.cutX+80;
+                    this.cutY=200;
+                }
+                else if(this.cutY==200&&this.cutX==110){
+                    this.cutX=this.cutX+76;
+                    this.cutY=200;
+                }
+                else if(this.cutY==200&&this.cutX==186){
+                    this.cutX=this.cutX+71;
+                    this.cutW=70;
+                    this.cutY=200;
+                }
+                else if(this.cutY==200&&this.cutX==257){
+                    this.cutX=0;
+                    this.cutW=55;
+                    this.cutY=268;
+                    this.positionX=this.positionX+20;
+                }
+                else if(this.cutY==268&&this.cutX==0){
+                    this.cutX=this.cutX+55;
+                    this.cutY=268;
+                }
+                else if(this.cutY==268&&this.cutX!=0&&this.cutX<215){
+                    this.cutX=this.cutX+55;
+                    this.cutY=268;
+                }
+                else if(this.cutY==268&&this.cutX==220){
+                    this.cutX=30;
+                    this.cutW=45;
+                    this.cutY=330;
+                }
+                else if(this.cutY==330&&this.cutX<260){
+                    this.cutX=this.cutX+50;
+                    this.cutY=330;
+                }
+                else if(this.cutY==330&&this.cutX==280){
+                    this.cutX=180;
+                    this.cutY=390;
+                }
+                else if(this.cutY>=380&&this.cutX<240){
+                    this.cutX=this.cutX+48;
+                }
+            }
+
+        };
+    }
+    function clearRect(clearX,clearY,clearW,clearH){
+        ctx.clearRect(0,0,1366,448);
+    }
+    function moveCheck(){
+        clearRect();
+        ctx.drawImage(backgroundImg,0,0,1760,224,backgroundPositionX,0,3520,448);
+        for(var i=0;i<enemyList.length;i++){
+            //enemyList[i].clear();
+            enemyList[i].move();
+            enemyList[i].drawEnemy();
+        }
+        for(var j=0;j<playList.length;j++){
+            playList[j].drawPlayer();
+        }
+        for(var k=0;k<bulletList.length;k++){
+            bulletList[k].move();
+            bulletList[k].drawBullet();
+        }
+    }
+    /*————————————————————碰撞判断————————————————————*/
+    function crashCheck(){
+        document.getElementById("score").innerHTML=killCount*100;
+        for(var i=0;i<enemyList.length;i++){
+            if(enemyList[i].positionX>1366&&enemyList[i].alive==true){
+                gameOver();
+            }
+            if(enemyList[i].positionX>1366||(enemyList[i].cutX==180&&enemyList[i].cutY==390&&enemyList[i].alive==false)){
+                enemyList.splice(i,1);
+            }
+            for(var j=0;j<bulletList.length;j++){
+                var a=bulletList[j].translateY-enemyList[i].positionX-45;
+                var b=bulletList[j].translateX-enemyList[i].positionX-50;
+                var c=bulletList[j].positionX+58;
+                var sinDeg=Math.sin((bulletList[j].deg+180)*Math.PI/180);
+                var cosDeg=Math.cos((bulletList[j].deg+180)*Math.PI/180);
+                var horizontalRange=bulletList[j].translateX-c*cosDeg-enemyList[i].positionX;
+                var verticalRange=bulletList[j].translateY-c*sinDeg-enemyList[i].positionY;
+
+                if(bulletList[j].positionX>1366){
+                    bulletList.splice(j,1);
+                }
+
+                if(enemyList[i].alive==true&&bulletList.length>0){
+                    //console.log("进入碰撞判断");
+                    if(horizontalRange>=10&&horizontalRange<=90&&verticalRange>=0&&verticalRange<=90){
+                        bulletList.splice(j,1);
+                        killCount++;
+                        enemyList[i].alive=false;
+                        enemyList[i].cutX=0;
+                        enemyList[i].cutY=138;
+                        enemyList[i].cutW=55;
+                        enemyList[i].cutH=60;
+                    }
+                }
+            }
+        }
+    }
+    /*————————————————————player角色按键移动————————————————————*/
+    document.body.onkeydown=function(){
+        var keyChange=window.event||arguments[0];
+        if(keyChange.keyCode==37){
+            leftButton=true;
+        }
+        if(keyChange.keyCode==39){
+            rightButton=true;
+        }
+        if(keyChange.keyCode==38){
+            upButton=true;
+        }
+        if(keyChange.keyCode==40){
+            downButton=true;
+        }
+        if(keyChange.keyCode==32){
+            spaceButton=true;
+        }
+    };
+    document.body.onkeyup=function(){
+        var keyChange=window.event||arguments[0];
+        if(keyChange.keyCode==37){
+            leftButton=false;
+        }
+        if(keyChange.keyCode==39){
+            rightButton=false;
+        }
+        if(keyChange.keyCode==38){
+            upButton=false;
+        }
+        if(keyChange.keyCode==40){
+            downButton=false;
+        }
+        if(keyChange.keyCode==32){
+            spaceButton=false;
+        }
+    };
+    function controlPlayerMove(){
+        if(myPlayer.alive==true){
+            if(leftButton==true){
+                myPlayer.moveLeft();
+                backgroundPositionX+=3;
+            }
+            else if(rightButton==true){
+                myPlayer.moveRight();
+                backgroundPositionX-=3;
+            }
+            else if(leftButton==false&&rightButton==false){
+                //myPlayer.stand();
+            }
+            if(spaceButton==true){
+                var newBullet=new playerBulletStyle(bulletImg,bulletPositionX,bulletPositionY);
+                bulletList.push(newBullet);
+            }
+        }
+    }
+</script>
+</body>
+</html>
